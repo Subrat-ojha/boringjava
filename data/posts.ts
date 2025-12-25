@@ -100,7 +100,7 @@ export const posts: Post[] = [
     id: '1',
     title: 'Welcome to BoringJava',
     category: 'Java SE',
-    author: 'Your Name',  // <-- Change this to your name
+    author: 'Subrat Ojha',
     date: 'Dec 25, 2024',
     readTime: '3 min',
     summary: 'This is my first blog post on BoringJava. Let\'s explore simple, maintainable Java practices together.',
