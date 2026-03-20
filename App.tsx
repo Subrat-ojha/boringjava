@@ -1,13 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from './supabase';
 import { posts as localPosts } from './data/posts';
 import { designPatternsPosts } from './data/designPatterns';
-
-// Initialize Supabase client
-// Replace with your actual Supabase URL and anon key
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 
 type Category = 'Java SE' | 'Design Patterns' | 'System Design' | 'Spring Boot';
 
