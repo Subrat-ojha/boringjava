@@ -119,16 +119,38 @@ const App: React.FC = () => {
     return post.categories?.name || post.category || 'Java SE';
   };
 
-  const highlightCode = (code: string) => {
-    return code
-      .replace(/(\/\/.*$)/gm, '<span class="comment">$1</span>')
-      .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="comment">$1</span>')
-      .replace(/\b(public|private|protected|class|interface|abstract|extends|implements|new|return|if|else|for|while|switch|case|break|continue|try|catch|finally|throw|throws|void|static|final|this|super)\b/g, '<span class="keyword">$1</span>')
-      .replace(/\b(String|int|double|float|boolean|long|char|byte|short|void|Integer|Double|Float|Boolean|Long|List|Map|Set|ArrayList|HashMap|HashSet)\b/g, '<span class="type">$1</span>')
-      .replace(/(".*?")/g, '<span class="string">$1</span>')
-      .replace(/\b(\d+\.?\d*)\b/g, '<span class="number">$1</span>')
-      .replace(/\b(true|false|null)\b/g, '<span class="boolean">$1</span>')
-      .replace(/(\(|\)|{|}|\[|\]|;|,|:)/g, '<span class="punctuation">$1</span>');
+  const escapeHtml = (text: string): string => {
+    const map: { [key: string]: string } = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  };
+
+  const highlightCode = (code: string): string => {
+    let escaped = escapeHtml(code);
+    
+    const tokens: [RegExp, string][] = [
+      [/(\/\/.*$)/gm, 'comment'],
+      [/(\/\*[\s\S]*?\*\/)/g, 'comment'],
+      [/("(?:[^"\\]|\\.)*")/g, 'string'],
+      [/(\b\d+\.?\d*\b)/g, 'number'],
+      [/\b(true|false|null)\b/g, 'boolean'],
+      [/\b(void|int|long|double|float|char|byte|short|boolean)\b/g, 'primitive'],
+      [/\b(String|Integer|Long|Double|Float|Boolean|Character|Byte|Short|List|Map|Set|ArrayList|HashMap|HashSet|Object|System|PrintStream)\b/g, 'type'],
+      [/\b(public|private|protected|class|interface|abstract|extends|implements|new|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|throws|void|static|final|this|super|import|package|enum)\b/g, 'keyword'],
+      [/\b(main|out|println|printf|print|length|size|get|set|add|remove|put|getOrDefault)\b/g, 'method'],
+      [/\b([A-Z][a-zA-Z0-9_]*)\b/g, 'class-name'],
+    ];
+    
+    for (const [pattern, className] of tokens) {
+      escaped = escaped.replace(pattern, `<span class="${className}">$1</span>`);
+    }
+    
+    return escaped;
   };
 
   if (loading) {
@@ -171,15 +193,16 @@ const App: React.FC = () => {
           line-height: 1.7;
         }
         .code-content .keyword { color: #ff79c6; font-weight: 600; }
+        .code-content .primitive { color: #ffb86c; font-weight: 600; }
         .code-content .type { color: #8be9fd; }
         .code-content .string { color: #f1fa8c; }
         .code-content .number { color: #bd93f9; }
         .code-content .boolean { color: #ff5555; }
         .code-content .comment { color: #6272a4; font-style: italic; }
-        .code-content .punctuation { color: #f8f8f2; }
         .code-content .method { color: #50fa7b; }
-        .code-content .class-name { color: #ffb86c; }
+        .code-content .class-name { color: #f8f8f2; }
         .code-content .annotation { color: #ff79c6; }
+        .code-content span { display: inline; }
       `}</style>
 
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-neutral-200 dark:bg-[#111]/80 dark:border-neutral-800 transition-colors duration-300">
