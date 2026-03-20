@@ -3,6 +3,9 @@ import { supabase } from './supabase';
 import { posts as localPosts } from './data/posts';
 import { designPatternsPosts } from './data/designPatterns';
 
+// Flag to use local data (set to false when Supabase is ready)
+const USE_SUPABASE = true;
+
 type Category = 'Java SE' | 'Design Patterns' | 'System Design' | 'Spring Boot';
 
 interface Post {

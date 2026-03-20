@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { designPatternsPosts } from './data/designPatterns';
 
-const supabaseUrl = 'https://db.wmvzcpseefbjyafa.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRibXpzY3BzZWVmYmp5YWZhZmEiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MjU1NzIwMCwiZXhwIjoxOTU4MTMzMjAwfQ.example';
+const supabaseUrl = 'https://wmvzcpseefbjyafaegvr.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtdnpjcHNlZWZianlhZmFlZ3ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Nzk3OTEsImV4cCI6MjA4OTU1NTc5MX0.ZMWL4VbEXqkCefWLrCn6dJwY0wEhBRKIGdxNpTSIi60';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
