@@ -104,31 +104,26 @@ const App: React.FC = () => {
   const getCodeSnippet = (post: Post) => post.code_snippet || post.codeSnippet || '';
   const getCategoryName = (post: Post) => post.categories?.name || post.category || 'Java SE';
 
-  const escapeHtml = (text: string): string => {
-    const map: { [key: string]: string } = {
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
-  };
-
   const highlightCode = (code: string): string => {
-    let escaped = escapeHtml(code);
-    const tokens: [RegExp, string][] = [
-      [/(\/\/.*$)/gm, 'comment'],
-      [/(\/\*[\s\S]*?\*\/)/g, 'comment'],
-      [/("(?:[^"\\]|\\.)*")/g, 'string'],
-      [/(\b\d+\.?\d*\b)/g, 'number'],
-      [/\b(true|false|null)\b/g, 'boolean'],
-      [/\b(void|int|long|double|float|char|byte|short|boolean)\b/g, 'primitive'],
-      [/\b(String|Integer|Long|Double|Float|Boolean|Character|Byte|Short|List|Map|Set|ArrayList|HashMap|HashSet|Object|System|PrintStream)\b/g, 'type'],
-      [/\b(public|private|protected|class|interface|abstract|extends|implements|new|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|throws|void|static|final|this|super|import|package|enum)\b/g, 'keyword'],
-      [/\b(main|out|println|printf|print|length|size|get|set|add|remove|put|getOrDefault)\b/g, 'method'],
-      [/\b([A-Z][a-zA-Z0-9_]*)\b/g, 'class-name'],
+    let result = code;
+    
+    const replacements: [string | RegExp, string | ((match: string) => string)][] = [
+      [/(\/\/.*$)/gm, '<span class="ch">$1</span>'],
+      [/(\/\*[\s\S]*?\*\/)/g, '<span class="ch">$1</span>'],
+      [/("(?:[^"\\]|\\.)*")/g, '<span class="cs">$1</span>'],
+      [/(\b\d+\.?\d*\b)/g, '<span class="cn">$1</span>'],
+      [/\b(true|false|null)\b/g, '<span class="cb">$1</span>'],
+      [/\b(void|int|long|double|float|char|byte|short|boolean)\b/g, '<span class="cp">$1</span>'],
+      [/\b(String|Integer|Long|Double|Float|Boolean|Character|Byte|Short|List|Map|Set|ArrayList|HashMap|HashSet|Object|System|PrintStream|Iterator|Stack|NoSuchElementException)\b/g, '<span class="ct">$1</span>'],
+      [/\b(public|private|protected|static|final|class|interface|abstract|extends|implements|new|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|throws|void|this|super|import|package|enum)\b/g, '<span class="ck">$1</span>'],
+      [/\b(main|out|println|printf|print|length|size|get|set|add|remove|put|getOrDefault|accept|update|notifyObservers|attach|detach|clone)\b/g, '<span class="cm">$1</span>'],
     ];
-    for (const [pattern, className] of tokens) {
-      escaped = escaped.replace(pattern, `<span class="${className}">$1</span>`);
+    
+    for (const [pattern, replacement] of replacements) {
+      result = result.replace(pattern, replacement as string);
     }
-    return escaped;
+    
+    return result;
   };
 
   const formatDate = (dateStr: string | undefined) => {
@@ -251,7 +246,7 @@ const App: React.FC = () => {
                       <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#3d3d3d]">
                         <span className="text-xs font-bold text-neutral-400 tracking-widest uppercase">Example</span>
                       </div>
-                      <pre className="p-6 text-sm text-neutral-200 overflow-x-auto font-mono leading-relaxed"
+                      <pre className="p-6 text-sm text-neutral-200 overflow-x-auto font-mono leading-relaxed [&_.ck]:text-pink-400 [&_.cp]:text-orange-400 [&_.ct]:text-cyan-400 [&_.cs]:text-yellow-300 [&_.cn]:text-purple-400 [&_.cb]:text-red-400 [&_.ch]:text-gray-500 [&_.cm]:text-green-400"
                         dangerouslySetInnerHTML={{ __html: highlightCode(selectedPost.code_snippet) }} />
                     </div>
                   )}
@@ -447,7 +442,7 @@ const App: React.FC = () => {
                 <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#3d3d3d]">
                   <span className="text-xs font-bold text-neutral-400 tracking-widest uppercase">Example</span>
                 </div>
-                <pre className="p-6 text-sm text-neutral-200 overflow-x-auto font-mono"
+                <pre className="p-6 text-sm text-neutral-200 overflow-x-auto font-mono [&_.ck]:text-pink-400 [&_.cp]:text-orange-400 [&_.ct]:text-cyan-400 [&_.cs]:text-yellow-300 [&_.cn]:text-purple-400 [&_.cb]:text-red-400 [&_.ch]:text-gray-500 [&_.cm]:text-green-400"
                   dangerouslySetInnerHTML={{ __html: highlightCode(getCodeSnippet(selectedPost)) }} />
               </div>
             )}
