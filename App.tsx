@@ -104,26 +104,71 @@ const App: React.FC = () => {
   const getCodeSnippet = (post: Post) => post.code_snippet || post.codeSnippet || '';
   const getCategoryName = (post: Post) => post.categories?.name || post.category || 'Java SE';
 
-  const highlightCode = (code: string): string => {
-    let result = code;
+  const CodeBlock: React.FC<{ code: string }> = ({ code }) => {
+    const lines = code.split('\n');
     
-    const replacements: [string | RegExp, string | ((match: string) => string)][] = [
-      [/(\/\/.*$)/gm, '<span class="ch">$1</span>'],
-      [/(\/\*[\s\S]*?\*\/)/g, '<span class="ch">$1</span>'],
-      [/("(?:[^"\\]|\\.)*")/g, '<span class="cs">$1</span>'],
-      [/(\b\d+\.?\d*\b)/g, '<span class="cn">$1</span>'],
-      [/\b(true|false|null)\b/g, '<span class="cb">$1</span>'],
-      [/\b(void|int|long|double|float|char|byte|short|boolean)\b/g, '<span class="cp">$1</span>'],
-      [/\b(String|Integer|Long|Double|Float|Boolean|Character|Byte|Short|List|Map|Set|ArrayList|HashMap|HashSet|Object|System|PrintStream|Iterator|Stack|NoSuchElementException)\b/g, '<span class="ct">$1</span>'],
-      [/\b(public|private|protected|static|final|class|interface|abstract|extends|implements|new|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|throws|void|this|super|import|package|enum)\b/g, '<span class="ck">$1</span>'],
-      [/\b(main|out|println|printf|print|length|size|get|set|add|remove|put|getOrDefault|accept|update|notifyObservers|attach|detach|clone)\b/g, '<span class="cm">$1</span>'],
-    ];
+    const highlightLine = (line: string) => {
+      const parts: React.ReactNode[] = [];
+      let remaining = line;
+      let key = 0;
+      
+      const patterns: [RegExp, string, (c: string) => string][] = [
+        [/^(\/\/.*)$/, 'ch', c => c],
+        [/^(\/\*[\s\S]*?\*\/)$/, 'ch', c => c],
+        [/("(?:[^"\\]|\\.)*")/, 'cs', c => c],
+        [/(\b\d+\.?\d*\b)/, 'cn', c => c],
+        [/\b(true|false|null)\b/, 'cb', c => c],
+        [/\b(void|int|long|double|float|char|byte|short|boolean)\b/, 'cp', c => c],
+        [/\b(String|Integer|Long|Double|Float|Boolean|Character|Byte|Short|List|Map|Set|ArrayList|HashMap|HashSet|Object|System|PrintStream)\b/, 'ct', c => c],
+        [/\b(public|private|protected|static|final|class|interface|abstract|extends|implements|new|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|throws|this|super|import|package|enum)\b/, 'ck', c => c],
+        [/\b(main|out|println|printf|print|length|size|get|set|add|remove|put|getOrDefault)\b/, 'cm', c => c],
+      ];
+      
+      const colorMap: Record<string, string> = {
+        'ch': 'text-gray-500',
+        'cs': 'text-yellow-300',
+        'cn': 'text-purple-400',
+        'cb': 'text-red-400',
+        'cp': 'text-orange-400',
+        'ct': 'text-cyan-400',
+        'ck': 'text-pink-400',
+        'cm': 'text-green-400',
+      };
+      
+      const processPatterns = () => {
+        if (!remaining.trim()) {
+          parts.push(<span key={key++}>{remaining}</span>);
+          return;
+        }
+        
+        for (const [pattern, cls, transform] of patterns) {
+          const match = remaining.match(pattern);
+          if (match && match.index === 0) {
+            parts.push(<span key={key++} className={colorMap[cls]}>{match[1]}</span>);
+            remaining = remaining.slice(match[0].length);
+            processPatterns();
+            return;
+          }
+        }
+        
+        if (remaining.length > 0) {
+          parts.push(<span key={key++}>{remaining[0]}</span>);
+          remaining = remaining.slice(1);
+          processPatterns();
+        }
+      };
+      
+      processPatterns();
+      return parts;
+    };
     
-    for (const [pattern, replacement] of replacements) {
-      result = result.replace(pattern, replacement as string);
-    }
-    
-    return result;
+    return (
+      <pre className="p-6 text-sm text-neutral-200 overflow-x-auto font-mono leading-relaxed">
+        {lines.map((line, i) => (
+          <div key={i}>{highlightLine(line)}</div>
+        ))}
+      </pre>
+    );
   };
 
   const formatDate = (dateStr: string | undefined) => {
@@ -246,8 +291,7 @@ const App: React.FC = () => {
                       <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#3d3d3d]">
                         <span className="text-xs font-bold text-neutral-400 tracking-widest uppercase">Example</span>
                       </div>
-                      <pre className="p-6 text-sm text-neutral-200 overflow-x-auto font-mono leading-relaxed [&_.ck]:text-pink-400 [&_.cp]:text-orange-400 [&_.ct]:text-cyan-400 [&_.cs]:text-yellow-300 [&_.cn]:text-purple-400 [&_.cb]:text-red-400 [&_.ch]:text-gray-500 [&_.cm]:text-green-400"
-                        dangerouslySetInnerHTML={{ __html: highlightCode(selectedPost.code_snippet) }} />
+                      <CodeBlock code={selectedPost.code_snippet} />
                     </div>
                   )}
 
@@ -442,8 +486,7 @@ const App: React.FC = () => {
                 <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#3d3d3d]">
                   <span className="text-xs font-bold text-neutral-400 tracking-widest uppercase">Example</span>
                 </div>
-                <pre className="p-6 text-sm text-neutral-200 overflow-x-auto font-mono [&_.ck]:text-pink-400 [&_.cp]:text-orange-400 [&_.ct]:text-cyan-400 [&_.cs]:text-yellow-300 [&_.cn]:text-purple-400 [&_.cb]:text-red-400 [&_.ch]:text-gray-500 [&_.cm]:text-green-400"
-                  dangerouslySetInnerHTML={{ __html: highlightCode(getCodeSnippet(selectedPost)) }} />
+                <CodeBlock code={getCodeSnippet(selectedPost)} />
               </div>
             )}
           </div>
