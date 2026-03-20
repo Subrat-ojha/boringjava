@@ -1,6 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { posts as localPosts } from './data/posts';
 import { designPatternsPosts } from './data/designPatterns';
+
+// Initialize Supabase client
+// Replace with your actual Supabase URL and anon key
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 
 type Category = 'Java SE' | 'Design Patterns' | 'System Design' | 'Spring Boot';
 
@@ -60,21 +67,63 @@ const App: React.FC = () => {
   const categories: (string | Category)[] = ['All', 'Java SE', 'Design Patterns', 'System Design', 'Spring Boot'];
 
   useEffect(() => {
-    const combinedPosts: Post[] = [];
-    combinedPosts.push(...localPosts.map(p => ({
-      ...p,
-      date: p.date,
-      readTime: p.readTime,
-      code_snippet: p.codeSnippet
-    })));
-    combinedPosts.push(...designPatternsPosts.map(p => ({
-      ...p,
-      date: p.created_at,
-      readTime: p.read_time,
-      category: 'Design Patterns'
-    })));
-    setAllPosts(combinedPosts);
-    setLoading(false);
+    const loadPosts = async () => {
+      try {
+        // Try to fetch from Supabase
+        const { data: dbPosts, error } = await supabase
+          .from('posts')
+          .select('*, categories(*)')
+          .eq('published', true)
+          .order('created_at', { ascending: false });
+
+        if (error || !dbPosts || dbPosts.length === 0) {
+          // Fallback to local data if Supabase is not configured or empty
+          console.log('Using local data...');
+          const combinedPosts: Post[] = [];
+          combinedPosts.push(...localPosts.map(p => ({
+            ...p,
+            date: p.date,
+            readTime: p.readTime,
+            code_snippet: p.codeSnippet
+          })));
+          combinedPosts.push(...designPatternsPosts.map(p => ({
+            ...p,
+            date: p.created_at,
+            readTime: p.read_time,
+            category: 'Design Patterns'
+          })));
+          setAllPosts(combinedPosts);
+        } else {
+          // Use database posts
+          setAllPosts(dbPosts.map((p: any) => ({
+            ...p,
+            date: p.created_at,
+            readTime: p.read_time,
+            code_snippet: p.code_snippet
+          })));
+        }
+      } catch (err) {
+        // Fallback to local data on error
+        console.log('Supabase not configured, using local data...');
+        const combinedPosts: Post[] = [];
+        combinedPosts.push(...localPosts.map(p => ({
+          ...p,
+          date: p.date,
+          readTime: p.readTime,
+          code_snippet: p.codeSnippet
+        })));
+        combinedPosts.push(...designPatternsPosts.map(p => ({
+          ...p,
+          date: p.created_at,
+          readTime: p.read_time,
+          category: 'Design Patterns'
+        })));
+        setAllPosts(combinedPosts);
+      }
+      setLoading(false);
+    };
+
+    loadPosts();
   }, []);
 
   useEffect(() => {
