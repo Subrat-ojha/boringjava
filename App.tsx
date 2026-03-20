@@ -1,19 +1,25 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { supabase } from './supabase';
+import { posts as localPosts, Post as LocalPost } from './data/posts';
 import { designPatternsPosts } from './data/designPatterns';
 
+type Category = 'Java SE' | 'Design Patterns' | 'System Design' | 'Spring Boot';
+
 interface Post {
-  id: number;
+  id: number | string;
   title: string;
-  slug: string;
+  slug?: string;
   summary: string;
   content: string;
   code_snippet?: string;
+  codeSnippet?: string;
   author: string;
-  category_id: number;
-  read_time: string;
-  published: boolean;
-  created_at: string;
+  category_id?: number;
+  category?: Category;
+  read_time?: string;
+  readTime?: string;
+  published?: boolean;
+  created_at?: string;
+  date?: string;
   categories?: {
     id: number;
     name: string;
@@ -23,7 +29,7 @@ interface Post {
 }
 
 const App: React.FC = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -32,7 +38,7 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
 
-  const categories = ['All', 'Creational Patterns', 'Structural Patterns', 'Behavioral Patterns'];
+  const categories: (string | Category)[] = ['All', 'Java SE', 'Design Patterns', 'System Design', 'Spring Boot'];
 
   useEffect(() => {
     fetchPosts();
@@ -47,47 +53,40 @@ const App: React.FC = () => {
   }, [darkMode]);
 
   const fetchPosts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*, categories(*)')
-        .eq('published', true)
-        .order('created_at', { ascending: false });
+    const combinedPosts: Post[] = [];
+    
+    combinedPosts.push(...localPosts.map(p => ({
+      ...p,
+      date: p.date,
+      readTime: p.readTime,
+      code_snippet: p.codeSnippet
+    })));
+    
+    combinedPosts.push(...designPatternsPosts.map(p => ({
+      ...p,
+      date: p.created_at,
+      readTime: p.read_time,
+      category: getCategoryFromId(p.category_id || 1)
+    })));
+    
+    setAllPosts(combinedPosts);
+    setLoading(false);
+  };
 
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setPosts(data);
-      } else {
-        setPosts(designPatternsPosts.map((p: any) => ({
-          ...p,
-          categories: {
-            id: p.category_id,
-            name: p.category_id === 1 ? 'Creational Patterns' : p.category_id === 2 ? 'Structural Patterns' : 'Behavioral Patterns',
-            slug: p.category_id === 1 ? 'creational' : p.category_id === 2 ? 'structural' : 'behavioral'
-          }
-        })));
-      }
-    } catch (error) {
-      console.log('Using local data...');
-      setPosts(designPatternsPosts.map((p: any) => ({
-        ...p,
-        categories: {
-          id: p.category_id,
-          name: p.category_id === 1 ? 'Creational Patterns' : p.category_id === 2 ? 'Structural Patterns' : 'Behavioral Patterns',
-          slug: p.category_id === 1 ? 'creational' : p.category_id === 2 ? 'structural' : 'behavioral'
-        }
-      })));
-    } finally {
-      setLoading(false);
+  const getCategoryFromId = (id: number): Category => {
+    switch(id) {
+      case 1: return 'Design Patterns';
+      case 2: return 'System Design';
+      case 3: return 'Spring Boot';
+      default: return 'Java SE';
     }
   };
 
   const filteredPosts = useMemo(() => {
-    let result = posts;
+    let result = allPosts;
 
     if (activeCategory !== 'All') {
-      result = result.filter(p => p.categories?.name === activeCategory);
+      result = result.filter(p => p.category === activeCategory);
     }
 
     if (searchQuery.trim()) {
@@ -100,11 +99,36 @@ const App: React.FC = () => {
     }
 
     return result;
-  }, [activeCategory, searchQuery, posts]);
+  }, [activeCategory, searchQuery, allPosts]);
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const getReadTime = (post: Post) => {
+    return post.read_time || post.readTime || '5 min';
+  };
+
+  const getCodeSnippet = (post: Post) => {
+    return post.code_snippet || post.codeSnippet || '';
+  };
+
+  const getCategoryName = (post: Post) => {
+    return post.categories?.name || post.category || 'Java SE';
+  };
+
+  const highlightCode = (code: string) => {
+    return code
+      .replace(/(\/\/.*$)/gm, '<span class="comment">$1</span>')
+      .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="comment">$1</span>')
+      .replace(/\b(public|private|protected|class|interface|abstract|extends|implements|new|return|if|else|for|while|switch|case|break|continue|try|catch|finally|throw|throws|void|static|final|this|super)\b/g, '<span class="keyword">$1</span>')
+      .replace(/\b(String|int|double|float|boolean|long|char|byte|short|void|Integer|Double|Float|Boolean|Long|List|Map|Set|ArrayList|HashMap|HashSet)\b/g, '<span class="type">$1</span>')
+      .replace(/(".*?")/g, '<span class="string">$1</span>')
+      .replace(/\b(\d+\.?\d*)\b/g, '<span class="number">$1</span>')
+      .replace(/\b(true|false|null)\b/g, '<span class="boolean">$1</span>')
+      .replace(/(\(|\)|{|}|\[|\]|;|,|:)/g, '<span class="punctuation">$1</span>');
   };
 
   if (loading) {
@@ -112,7 +136,7 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-[#fafafa] dark:bg-[#0a0a0a] flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#facc15] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-neutral-500 dark:text-neutral-400">Loading patterns...</p>
+          <p className="text-neutral-500 dark:text-neutral-400">Loading...</p>
         </div>
       </div>
     );
@@ -120,19 +144,58 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#fafafa] text-[#1a1a1a] dark:bg-[#0a0a0a] dark:text-[#e5e5e5] transition-colors duration-300">
-      <nav className="sticky top-0 z-50 bg-white border-b border-neutral-200 dark:bg-[#111] dark:border-neutral-800 transition-colors duration-300">
+      <style>{`
+        .code-block {
+          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 60px rgba(250, 204, 21, 0.1);
+        }
+        .code-header {
+          background: linear-gradient(90deg, #e94560 0%, #f97316 50%, #facc15 100%);
+          padding: 12px 20px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .code-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+        }
+        .code-content {
+          padding: 20px;
+          overflow-x: auto;
+          font-family: 'Fira Code', 'JetBrains Mono', 'Monaco', monospace;
+          font-size: 13px;
+          line-height: 1.7;
+        }
+        .code-content .keyword { color: #ff79c6; font-weight: 600; }
+        .code-content .type { color: #8be9fd; }
+        .code-content .string { color: #f1fa8c; }
+        .code-content .number { color: #bd93f9; }
+        .code-content .boolean { color: #ff5555; }
+        .code-content .comment { color: #6272a4; font-style: italic; }
+        .code-content .punctuation { color: #f8f8f2; }
+        .code-content .method { color: #50fa7b; }
+        .code-content .class-name { color: #ffb86c; }
+        .code-content .annotation { color: #ff79c6; }
+      `}</style>
+
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-neutral-200 dark:bg-[#111]/80 dark:border-neutral-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="cursor-pointer" onClick={() => { setSelectedPost(null); setActiveCategory('All'); setShowAbout(false); }}>
-            <h1 className="text-2xl font-black tracking-tighter">Boring<span className="text-[#facc15]">Java</span></h1>
+            <img src="/download.png" alt="BoringJava" className="h-10 dark:invert dark:brightness-0 dark:sepia dark:hue-rotate-180 dark:saturate-[1000%]" />
           </div>
           <div className="hidden md:flex space-x-8">
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => { setActiveCategory(cat); setSelectedPost(null); setShowAbout(false); }}
-                className={`text-sm font-semibold tracking-tight transition-colors ${!showAbout && activeCategory === cat ? 'text-[#1a1a1a] dark:text-white' : 'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'}`}
+                className={`text-sm font-semibold tracking-tight transition-colors relative group ${!showAbout && activeCategory === cat ? 'text-[#1a1a1a] dark:text-white' : 'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'}`}
               >
                 {cat}
+                <span className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-[#facc15] transition-all duration-300 group-hover:w-full ${activeCategory === cat ? 'w-full' : ''}`}></span>
               </button>
             ))}
             <button
@@ -146,7 +209,6 @@ const App: React.FC = () => {
             <button
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {darkMode ? (
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,7 +220,7 @@ const App: React.FC = () => {
                 </svg>
               )}
             </button>
-            <button className="hidden md:block bg-[#1a1a1a] text-white text-xs font-bold px-4 py-2 rounded uppercase tracking-widest hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 transition-colors">
+            <button className="hidden md:block bg-gradient-to-r from-[#facc15] to-[#f97316] text-black text-xs font-bold px-4 py-2 rounded-full uppercase tracking-widest hover:shadow-lg hover:shadow-[#facc15]/30 transition-all">
               Subscribe
             </button>
             <button
@@ -183,7 +245,7 @@ const App: React.FC = () => {
                 <button
                   key={cat}
                   onClick={() => { setActiveCategory(cat); setSelectedPost(null); setIsMobileMenuOpen(false); setShowAbout(false); }}
-                  className={`text-left text-sm font-semibold py-2 transition-colors ${!showAbout && activeCategory === cat ? 'text-[#1a1a1a] dark:text-white' : 'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'}`}
+                  className={`text-left text-sm font-semibold py-2 transition-colors ${!showAbout && activeCategory === cat ? 'text-[#1a1a1a] dark:text-white' : 'text-neutral-400'}`}
                 >
                   {cat}
                 </button>
@@ -221,7 +283,7 @@ const App: React.FC = () => {
                   <p className="text-neutral-600 dark:text-neutral-400">
                     Java Developer at <strong>IbaseIt Inc.</strong>
                     <br />
-                    Developing backend systems using Finite State Machine (FSM) based frameworks.
+                    Developing backend systems using FSM-based frameworks.
                   </p>
                 </div>
               </div>
@@ -231,35 +293,57 @@ const App: React.FC = () => {
           <div className="max-w-3xl mx-auto">
             <button
               onClick={() => setSelectedPost(null)}
-              className="mb-8 text-neutral-400 hover:text-[#1a1a1a] dark:hover:text-white flex items-center text-sm font-semibold transition-colors"
+              className="mb-8 text-neutral-400 hover:text-[#1a1a1a] dark:hover:text-white flex items-center text-sm font-semibold transition-colors group"
             >
-              ← Back to patterns
+              <svg className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to posts
             </button>
-            <span className="bg-[#facc15] text-black text-[10px] font-black uppercase px-2 py-1 tracking-tighter">
-              {selectedPost.categories?.name}
-            </span>
+            
+            <div className="flex items-center gap-3 mb-4">
+              <span className="bg-gradient-to-r from-[#facc15] to-[#f97316] text-black text-[10px] font-black uppercase px-3 py-1.5 rounded-full tracking-wider">
+                {getCategoryName(selectedPost)}
+              </span>
+            </div>
+            
             <h1 className="text-5xl font-extrabold mt-4 mb-6 leading-tight">
               {selectedPost.title}
             </h1>
+            
             <div className="flex items-center space-x-4 mb-12 text-sm text-neutral-500 dark:text-neutral-400">
-              <span className="font-bold text-[#1a1a1a] dark:text-white">{selectedPost.author}</span>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#facc15] to-[#f97316] flex items-center justify-center text-white font-bold text-xs">
+                  {selectedPost.author.charAt(0)}
+                </div>
+                <span className="font-bold text-[#1a1a1a] dark:text-white">{selectedPost.author}</span>
+              </div>
               <span>•</span>
-              <span>{formatDate(selectedPost.created_at)}</span>
+              <span>{formatDate(selectedPost.date || selectedPost.created_at)}</span>
               <span>•</span>
-              <span>{selectedPost.read_time} read</span>
+              <span className="flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {getReadTime(selectedPost)}
+              </span>
             </div>
 
             <div className="prose prose-neutral max-w-none text-lg leading-relaxed text-neutral-700 dark:text-neutral-300"
-              dangerouslySetInnerHTML={{ __html: selectedPost.content }} />
+              dangerouslySetInnerHTML={{ __html: selectedPost.content.replace(/\n\n/g, '</p><p class="mb-6">').replace(/^/, '<p class="mb-6">').replace(/$/, '</p>') }} />
 
-            {selectedPost.code_snippet && (
-              <div className="my-10 bg-[#1e1e1e] rounded-xl overflow-hidden shadow-xl">
-                <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#3d3d3d]">
-                  <span className="text-xs font-bold text-neutral-400 tracking-widest uppercase">Example Implementation</span>
+            {getCodeSnippet(selectedPost) && (
+              <div className="my-12 code-block">
+                <div className="code-header">
+                  <div className="code-dot bg-[#ff5f56]"></div>
+                  <div className="code-dot bg-[#ffbd2e]"></div>
+                  <div className="code-dot bg-[#27ca40]"></div>
+                  <span className="ml-4 text-xs font-bold text-white/80 tracking-wider">Example.java</span>
                 </div>
-                <pre className="p-6 text-sm text-neutral-200 overflow-x-auto font-mono">
-                  {selectedPost.code_snippet}
-                </pre>
+                <pre 
+                  className="code-content text-neutral-200"
+                  dangerouslySetInnerHTML={{ __html: highlightCode(getCodeSnippet(selectedPost)) }}
+                />
               </div>
             )}
           </div>
@@ -269,49 +353,60 @@ const App: React.FC = () => {
               <h2 className="text-sm font-black uppercase tracking-[0.2em] text-neutral-400 mb-4">The Repository</h2>
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <h1 className="text-6xl font-extrabold tracking-tighter max-w-2xl leading-none">
-                  23 Design <span className="text-[#facc15]">Patterns</span> in Java.
+                  Predictable code is <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#facc15] to-[#f97316]">successful</span> code.
                 </h1>
                 <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="Search patterns..."
+                      placeholder="Search posts..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-64 px-4 py-2.5 pl-10 bg-white border border-neutral-200 rounded-full text-sm focus:outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100 transition-all dark:bg-[#1a1a1a] dark:border-neutral-700 dark:text-white dark:focus:border-neutral-500"
+                      className="w-64 px-4 py-2.5 pl-10 bg-white border border-neutral-200 rounded-full text-sm focus:outline-none focus:border-[#facc15] focus:ring-4 focus:ring-[#facc15]/20 transition-all dark:bg-[#1a1a1a] dark:border-neutral-700 dark:text-white"
                     />
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
                   <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                    <span className="font-bold text-[#1a1a1a] dark:text-white">{filteredPosts.length}</span> patterns
+                    <span className="font-bold text-[#1a1a1a] dark:text-white">{filteredPosts.length}</span> posts
+                    {activeCategory !== 'All' && <span> in {activeCategory}</span>}
                   </span>
                 </div>
               </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              {filteredPosts.map((post) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredPosts.map((post, index) => (
                 <article
-                  key={post.id}
+                  key={`${post.id}-${index}`}
                   onClick={() => setSelectedPost(post)}
-                  className="group cursor-pointer flex flex-col h-full bg-white border border-neutral-200 rounded-2xl p-8 hover:shadow-2xl hover:border-transparent dark:bg-[#111] dark:border-neutral-800 dark:hover:border-neutral-700 transition-all duration-300"
+                  className="group cursor-pointer flex flex-col h-full bg-white border border-neutral-200 rounded-2xl p-8 hover:shadow-2xl hover:border-[#facc15]/50 hover:-translate-y-1 dark:bg-[#111] dark:border-neutral-800 dark:hover:border-[#facc15]/50 transition-all duration-300"
                 >
                   <div className="mb-6">
-                    <span className="bg-[#facc15] text-black text-[10px] font-black uppercase px-2 py-1 tracking-tighter">
-                      {post.categories?.name}
+                    <span className="bg-gradient-to-r from-[#facc15] to-[#f97316] text-black text-[10px] font-black uppercase px-3 py-1.5 rounded-full tracking-wider">
+                      {getCategoryName(post)}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-bold mb-4 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 transition-colors">
+                  <h3 className="text-xl font-bold mb-4 group-hover:text-[#f97316] dark:group-hover:text-[#facc15] transition-colors">
                     {post.title}
                   </h3>
-                  <p className="text-neutral-500 text-sm leading-relaxed mb-8 flex-grow dark:text-neutral-400">
+                  <p className="text-neutral-500 text-sm leading-relaxed mb-6 flex-grow dark:text-neutral-400">
                     {post.summary}
                   </p>
                   <div className="flex items-center justify-between pt-6 border-t border-neutral-100 dark:border-neutral-800 mt-auto">
-                    <span className="text-xs font-bold text-[#1a1a1a] dark:text-white">{post.author}</span>
-                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">{post.read_time}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#facc15] to-[#f97316] flex items-center justify-center text-white font-bold text-[10px]">
+                        {post.author.charAt(0)}
+                      </div>
+                      <span className="text-xs font-bold text-[#1a1a1a] dark:text-white">{post.author}</span>
+                    </div>
+                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {getReadTime(post)}
+                    </span>
                   </div>
                 </article>
               ))}
@@ -319,7 +414,12 @@ const App: React.FC = () => {
 
             {filteredPosts.length === 0 && (
               <div className="text-center py-20">
-                <p className="text-neutral-400 text-lg">No patterns found matching your search.</p>
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                  <svg className="w-10 h-10 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-neutral-400 text-lg">No posts found matching your search.</p>
               </div>
             )}
           </>
@@ -328,14 +428,14 @@ const App: React.FC = () => {
 
       <footer className="mt-12 bg-white border-t border-neutral-200 py-8 dark:bg-[#111] dark:border-neutral-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-          <h1 className="text-xl font-black tracking-tighter">Boring<span className="text-[#facc15]">Java</span></h1>
+          <img src="/download.png" alt="BoringJava" className="h-6 dark:invert dark:brightness-0 dark:sepia dark:hue-rotate-180 dark:saturate-[1000%]" />
           <p className="text-xs font-bold text-neutral-400 tracking-widest uppercase">
             © 2024 BORINGJAVA ENTERPRISE. ALL RIGHTS RESERVED.
           </p>
           <div className="flex space-x-6">
-            <a href="#" className="text-xs font-bold hover:underline">Twitter</a>
-            <a href="#" className="text-xs font-bold hover:underline">GitHub</a>
-            <a href="#" className="text-xs font-bold hover:underline">RSS</a>
+            <a href="#" className="text-xs font-bold hover:text-[#facc15] transition-colors">Twitter</a>
+            <a href="#" className="text-xs font-bold hover:text-[#facc15] transition-colors">GitHub</a>
+            <a href="#" className="text-xs font-bold hover:text-[#facc15] transition-colors">RSS</a>
           </div>
         </div>
       </footer>
