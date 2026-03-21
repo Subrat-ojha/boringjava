@@ -727,7 +727,6 @@ combinedPosts.push(...designPatternsPosts.map(p => ({
 
   const InterviewQuestionsPage = () => {
     const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
-    const [filterCategory, setFilterCategory] = useState<string>('All');
     const [searchIQ, setSearchIQ] = useState('');
 
     const toggleQuestion = (index: number) => {
@@ -742,7 +741,11 @@ combinedPosts.push(...designPatternsPosts.map(p => ({
 
     const interviewPosts = allPosts.filter(p => 
       p.categories?.name === 'Java Interview Questions' || p.category === 'Java Interview Questions'
-    );
+    ).sort((a, b) => {
+      const aNum = parseInt((a.slug || '').replace('interview-', '')) || 0;
+      const bNum = parseInt((b.slug || '').replace('interview-', '')) || 0;
+      return aNum - bNum;
+    });
 
     const filteredQuestions = interviewPosts.filter(p => {
       const matchesSearch = !searchIQ || 
@@ -753,81 +756,96 @@ combinedPosts.push(...designPatternsPosts.map(p => ({
 
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 transition-colors">
-        <div className="max-w-4xl mx-auto py-8 px-4">
-          <button
-            onClick={() => { setShowInterviewQuestions(false); }}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm mb-6 flex items-center transition-colors"
-          >
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to blog
-          </button>
+        <style>{`
+          .iq-card { background: white; border: 1px solid #e5e7eb; border-radius: 1rem; transition: all 0.2s; }
+          .dark .iq-card { background: #111; border-color: #1f2937; }
+          .iq-card:hover { border-color: #d1d5db; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+          .dark .iq-card:hover { border-color: #374151; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+          .iq-card-btn { display: flex; align-items: center; gap: 1rem; width: 100%; padding: 1.25rem; transition: background-color 0.15s; }
+          .iq-card-btn:hover { background-color: #f9fafb; border-radius: 1rem; }
+          .dark .iq-card-btn:hover { background-color: #1f2937; }
+          .iq-num { font-family: monospace; font-size: 0.75rem; color: #9ca3af; min-width: 2rem; }
+          .dark .iq-num { color: #4b5563; }
+          .iq-title { font-size: 1rem; font-weight: 600; color: #111827; text-align: left; flex: 1; }
+          .dark .iq-title { color: #f9fafb; }
+          .iq-arrow { width: 1.25rem; height: 1.25rem; color: #9ca3af; transition: transform 0.2s; }
+          .iq-content { padding: 0 1.25rem 1.25rem; border-top: 1px solid #f3f4f6; margin-top: -0.5rem; padding-top: 1rem; }
+          .dark .iq-content { border-color: #1f2937; }
+          .iq-answer { font-size: 0.9375rem; line-height: 1.75; color: #4b5563; }
+          .dark .iq-answer { color: #d1d5db; }
+          .dark .prose h2 { color: #f5f5f5; }
+          .dark .prose p { color: #d4d4d4; }
+        `}</style>
 
-          <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900 dark:text-white">
-              Java Interview Questions
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400">
-              {interviewPosts.length} questions with detailed answers
-            </p>
+        <div className="max-w-4xl mx-auto">
+          <div className="border-b border-gray-200 dark:border-gray-800 py-6 px-4">
+            <button
+              onClick={() => { setShowInterviewQuestions(false); }}
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm mb-4 flex items-center transition-colors"
+            >
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to blog
+            </button>
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900 dark:text-white">Java Interview Questions</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-lg">{interviewPosts.length}+ questions with detailed answers</p>
           </div>
 
-          <div className="mb-6">
-            <input
-              type="text"
-              placeholder="Search questions..."
-              value={searchIQ}
-              onChange={(e) => setSearchIQ(e.target.value)}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400"
-            />
-          </div>
-
-          <div className="space-y-3">
-            {filteredQuestions.map((post, idx) => (
-              <div 
-                key={post.id || idx}
-                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden"
-              >
-                <button
-                  onClick={() => toggleQuestion(idx)}
-                  className="w-full text-left p-5 flex items-start gap-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <span className="text-gray-300 dark:text-gray-600 font-mono text-sm mt-1">
-                    {String(idx + 1).padStart(3, '0')}
-                  </span>
-                  <div className="flex-1">
-                    <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white text-left">
-                      {post.title}
-                    </h3>
-                  </div>
-                  <svg 
-                    className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expandedQuestions.has(idx) ? 'rotate-180' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                
-                {expandedQuestions.has(idx) && (
-                  <div className="px-5 pb-5 pt-0 border-t border-gray-100 dark:border-gray-800">
-                    <div 
-                      className="pt-4 prose dark:prose-invert max-w-none"
-                      dangerouslySetInnerHTML={{ __html: post.content }}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {filteredQuestions.length === 0 && (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              No questions found matching your search.
+          <div className="p-4">
+            <div className="relative mb-6">
+              <input
+                type="text"
+                placeholder="Search questions..."
+                value={searchIQ}
+                onChange={(e) => setSearchIQ(e.target.value)}
+                className="w-full px-4 py-3 pl-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-full text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400"
+              />
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
-          )}
+
+            <div className="space-y-3">
+              {filteredQuestions.map((post, idx) => (
+                <div 
+                  key={post.id || idx}
+                  className="iq-card"
+                >
+                  <button
+                    onClick={() => toggleQuestion(idx)}
+                    className="iq-card-btn"
+                  >
+                    <span className="iq-num">{String(idx + 1).padStart(3, '0')}</span>
+                    <h3 className="iq-title">{post.title}</h3>
+                    <svg 
+                      className={`iq-arrow ${expandedQuestions.has(idx) ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {expandedQuestions.has(idx) && (
+                    <div className="iq-content">
+                      <div 
+                        className="prose dark:prose-invert max-w-none iq-answer"
+                        dangerouslySetInnerHTML={{ __html: post.content }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {filteredQuestions.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500 dark:text-gray-400">No questions found matching your search.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );

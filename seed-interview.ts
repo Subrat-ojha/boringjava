@@ -1119,8 +1119,10 @@ public class StaticDemo {
 
   // Seed Interview Questions
   console.log('\nSeeding Java Interview Questions...');
+  const baseDate = new Date('2024-01-01T00:00:00Z');
   for (let i = 0; i < interviewQuestions.length; i++) {
     const q = interviewQuestions[i];
+    const createdAt = new Date(baseDate.getTime() + i * 1000).toISOString();
     const { error } = await supabase
       .from('posts')
       .upsert({
@@ -1132,7 +1134,7 @@ public class StaticDemo {
         category_id: iqCategoryId,
         read_time: '3 min',
         published: true,
-        created_at: new Date().toISOString()
+        created_at: createdAt
       }, { onConflict: 'slug' });
 
     if (error) console.log(`✗ Q${i + 1}: ${error.message}`);
