@@ -62,6 +62,7 @@ const App: React.FC = () => {
   const [showAbout, setShowAbout] = useState(false);
   const [showDesignPatternsPage, setShowDesignPatternsPage] = useState(false);
   const [showSystemDesignPage, setShowSystemDesignPage] = useState(false);
+  const [showInterviewQuestions, setShowInterviewQuestions] = useState(false);
 
   const categories: (string | Category)[] = ['All', 'Java SE', 'Java Fundamentals', 'Java Interview Questions', 'Design Patterns', 'System Design', 'Spring Boot'];
 
@@ -724,6 +725,114 @@ combinedPosts.push(...designPatternsPosts.map(p => ({
     );
   };
 
+  const InterviewQuestionsPage = () => {
+    const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
+    const [filterCategory, setFilterCategory] = useState<string>('All');
+    const [searchIQ, setSearchIQ] = useState('');
+
+    const toggleQuestion = (index: number) => {
+      const newSet = new Set(expandedQuestions);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      setExpandedQuestions(newSet);
+    };
+
+    const interviewPosts = allPosts.filter(p => 
+      p.categories?.name === 'Java Interview Questions' || p.category === 'Java Interview Questions'
+    );
+
+    const filteredQuestions = interviewPosts.filter(p => {
+      const matchesSearch = !searchIQ || 
+        p.title.toLowerCase().includes(searchIQ.toLowerCase()) ||
+        p.summary?.toLowerCase().includes(searchIQ.toLowerCase());
+      return matchesSearch;
+    });
+
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 transition-colors">
+        <div className="max-w-4xl mx-auto py-8 px-4">
+          <button
+            onClick={() => { setShowInterviewQuestions(false); }}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm mb-6 flex items-center transition-colors"
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to blog
+          </button>
+
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900 dark:text-white">
+              Java Interview Questions
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400">
+              {interviewPosts.length} questions with detailed answers
+            </p>
+          </div>
+
+          <div className="mb-6">
+            <input
+              type="text"
+              placeholder="Search questions..."
+              value={searchIQ}
+              onChange={(e) => setSearchIQ(e.target.value)}
+              className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400"
+            />
+          </div>
+
+          <div className="space-y-3">
+            {filteredQuestions.map((post, idx) => (
+              <div 
+                key={post.id || idx}
+                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden"
+              >
+                <button
+                  onClick={() => toggleQuestion(idx)}
+                  className="w-full text-left p-5 flex items-start gap-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <span className="text-gray-300 dark:text-gray-600 font-mono text-sm mt-1">
+                    {String(idx + 1).padStart(3, '0')}
+                  </span>
+                  <div className="flex-1">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white text-left">
+                      {post.title}
+                    </h3>
+                  </div>
+                  <svg 
+                    className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expandedQuestions.has(idx) ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {expandedQuestions.has(idx) && (
+                  <div className="px-5 pb-5 pt-0 border-t border-gray-100 dark:border-gray-800">
+                    <div 
+                      className="pt-4 prose dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: post.content }}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {filteredQuestions.length === 0 && (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              No questions found matching your search.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center">
@@ -738,6 +847,10 @@ combinedPosts.push(...designPatternsPosts.map(p => ({
 
   if (showSystemDesignPage) {
     return <SystemDesignPage />;
+  }
+
+  if (showInterviewQuestions) {
+    return <InterviewQuestionsPage />;
   }
 
   return (
@@ -762,6 +875,8 @@ combinedPosts.push(...designPatternsPosts.map(p => ({
                     setShowDesignPatternsPage(true);
                   } else if (cat === 'System Design') {
                     setShowSystemDesignPage(true);
+                  } else if (cat === 'Java Interview Questions') {
+                    setShowInterviewQuestions(true);
                   } else {
                     setActiveCategory(cat);
                     setSelectedPost(null);
@@ -769,7 +884,9 @@ combinedPosts.push(...designPatternsPosts.map(p => ({
                   }
                 }}
                 className={`text-sm font-semibold transition-colors ${
-                  cat === 'Design Patterns' ? 'text-yellow-400' : cat === 'System Design' ? 'text-blue-400' : ''
+                  cat === 'Design Patterns' ? 'text-yellow-400' : 
+                  cat === 'System Design' ? 'text-blue-400' : 
+                  cat === 'Java Interview Questions' ? 'text-green-400' : ''
                 } ${
                   !showAbout && activeCategory === cat ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
@@ -835,6 +952,8 @@ combinedPosts.push(...designPatternsPosts.map(p => ({
                       setShowDesignPatternsPage(true);
                     } else if (cat === 'System Design') {
                       setShowSystemDesignPage(true);
+                    } else if (cat === 'Java Interview Questions') {
+                      setShowInterviewQuestions(true);
                     } else {
                       setActiveCategory(cat);
                       setSelectedPost(null);
@@ -843,7 +962,9 @@ combinedPosts.push(...designPatternsPosts.map(p => ({
                     setMobileMenuOpen(false);
                   }}
                   className={`block w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    cat === 'Design Patterns' ? 'text-yellow-400 bg-gray-50 dark:bg-gray-900' : cat === 'System Design' ? 'text-blue-400 bg-gray-50 dark:bg-gray-900' : ''
+                    cat === 'Design Patterns' ? 'text-yellow-400 bg-gray-50 dark:bg-gray-900' : 
+                    cat === 'System Design' ? 'text-blue-400 bg-gray-50 dark:bg-gray-900' :
+                    cat === 'Java Interview Questions' ? 'text-green-400 bg-gray-50 dark:bg-gray-900' : ''
                   } ${
                     !showAbout && activeCategory === cat
                       ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800'
