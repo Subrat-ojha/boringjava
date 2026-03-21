@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { designPatternsPosts } from './data/designPatterns';
+import { systemDesignPosts } from './data/systemDesign';
 
 const supabaseUrl = 'https://wmvzcpseefbjyafaegvr.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtdnpjcHNlZWZianlhZmFlZ3ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Nzk3OTEsImV4cCI6MjA4OTU1NTc5MX0.ZMWL4VbEXqkCefWLrCn6dJwY0wEhBRKIGdxNpTSIi60';
@@ -9,7 +10,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function seedDatabase() {
   console.log('Starting database seed...\n');
 
-  // Create categories
   const categories = [
     { name: 'Design Patterns', slug: 'design-patterns', description: 'All 23 GoF Design Patterns' },
     { name: 'Java SE', slug: 'java-se', description: 'Core Java concepts' },
@@ -26,16 +26,21 @@ async function seedDatabase() {
     else console.log(`✓ ${cat.name}`);
   }
 
-  // Get Design Patterns category ID
   const { data: dpCategory } = await supabase
     .from('categories')
     .select('id')
     .eq('slug', 'design-patterns')
     .single();
 
-  const categoryId = dpCategory?.id || 1;
+  const { data: sdCategory } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('slug', 'system-design')
+    .single();
 
-  // Insert all design patterns
+  const dpCategoryId = dpCategory?.id || 1;
+  const sdCategoryId = sdCategory?.id || 3;
+
   console.log('\nInserting Design Patterns...');
   for (let i = 0; i < designPatternsPosts.length; i++) {
     const pattern = designPatternsPosts[i];
@@ -47,7 +52,7 @@ async function seedDatabase() {
       content: pattern.content,
       code_snippet: pattern.code_snippet,
       author: pattern.author,
-      category_id: categoryId,
+      category_id: dpCategoryId,
       read_time: pattern.read_time,
       published: true,
       created_at: pattern.created_at
@@ -61,6 +66,34 @@ async function seedDatabase() {
       console.log(`✗ Error inserting ${pattern.title}:`, error.message);
     } else {
       console.log(`✓ ${i + 1}. ${pattern.title.split(' - ')[0]}`);
+    }
+  }
+
+  console.log('\nInserting System Design posts...');
+  for (let i = 0; i < systemDesignPosts.length; i++) {
+    const pattern = systemDesignPosts[i];
+    
+    const post = {
+      title: pattern.title,
+      slug: pattern.slug,
+      summary: pattern.summary,
+      content: pattern.content,
+      code_snippet: pattern.code_snippet,
+      author: pattern.author,
+      category_id: sdCategoryId,
+      read_time: pattern.read_time,
+      published: true,
+      created_at: pattern.created_at
+    };
+
+    const { error } = await supabase
+      .from('posts')
+      .upsert(post, { onConflict: 'slug' });
+
+    if (error) {
+      console.log(`✗ Error inserting ${pattern.title}:`, error.message);
+    } else {
+      console.log(`✓ ${i + 1}. ${pattern.title}`);
     }
   }
 

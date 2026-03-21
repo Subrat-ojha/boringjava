@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { supabase } from './supabase';
 import { posts as localPosts } from './data/posts';
 import { designPatternsPosts } from './data/designPatterns';
+import { systemDesignPosts } from './data/systemDesign';
 
 // Flag to use local data (set to false when Supabase is ready)
 const USE_SUPABASE = true;
@@ -60,6 +61,7 @@ const App: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showDesignPatternsPage, setShowDesignPatternsPage] = useState(false);
+  const [showSystemDesignPage, setShowSystemDesignPage] = useState(false);
 
   const categories: (string | Category)[] = ['All', 'Java SE', 'Design Patterns', 'System Design', 'Spring Boot'];
 
@@ -89,6 +91,12 @@ const App: React.FC = () => {
             readTime: p.read_time,
             category: 'Design Patterns'
           })));
+          combinedPosts.push(...systemDesignPosts.map(p => ({
+            ...p,
+            date: p.created_at,
+            readTime: p.read_time,
+            category: 'System Design'
+          })));
           setAllPosts(combinedPosts);
         } else {
           // Use database posts
@@ -109,15 +117,21 @@ const App: React.FC = () => {
           readTime: p.readTime,
           code_snippet: p.codeSnippet
         })));
-        combinedPosts.push(...designPatternsPosts.map(p => ({
-          ...p,
-          date: p.created_at,
-          readTime: p.read_time,
-          category: 'Design Patterns'
-        })));
-        setAllPosts(combinedPosts);
+combinedPosts.push(...designPatternsPosts.map(p => ({
+            ...p,
+            date: p.created_at,
+            readTime: p.read_time,
+            category: 'Design Patterns'
+          })));
+          combinedPosts.push(...systemDesignPosts.map(p => ({
+            ...p,
+            date: p.created_at,
+            readTime: p.read_time,
+            category: 'System Design'
+          })));
+          setAllPosts(combinedPosts);
       }
-      setLoading(false);
+        setLoading(false);
     };
 
     loadPosts();
@@ -232,6 +246,19 @@ const App: React.FC = () => {
     const [activeSection, setActiveSection] = useState<string>('creational');
     const [mobilePatternList, setMobilePatternList] = useState(false);
     const currentPatterns = patternCategories[activeSection as keyof typeof patternCategories].patterns;
+
+    // Auto-select post when navigating from landing page
+    useEffect(() => {
+      if (selectedPost) {
+        // Find which section this pattern belongs to
+        const pattern = designPatternsPosts.find(p => p.id === selectedPost.id);
+        if (pattern) {
+          if (pattern.category_id === 1) setActiveSection('creational');
+          else if (pattern.category_id === 2) setActiveSection('structural');
+          else if (pattern.category_id === 3) setActiveSection('behavioral');
+        }
+      }
+    }, [selectedPost]);
 
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 transition-colors">
@@ -477,6 +504,225 @@ const App: React.FC = () => {
     );
   };
 
+  const SystemDesignPage = () => {
+    const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+    const [mobilePatternList, setMobilePatternList] = useState(false);
+
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 transition-colors">
+        <style>{`
+          .prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; }
+          .prose h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+          .prose p { margin-bottom: 1rem; line-height: 1.75; }
+          .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+          .prose li { margin-bottom: 0.5rem; }
+          .prose strong { font-weight: 600; }
+          .dark .prose h2, .dark .prose h3 { color: #f5f5f5; }
+          .dark .prose p, .dark .prose li { color: #d4d4d4; }
+        `}</style>
+
+        <div className="max-w-7xl mx-auto">
+          <div className="border-b border-gray-200 dark:border-gray-800 py-6 px-4">
+            <button
+              onClick={() => { setShowSystemDesignPage(false); setSelectedPost(null); }}
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm mb-4 flex items-center transition-colors"
+            >
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to blog
+            </button>
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-gray-900 dark:text-white">System Design</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-lg">Building scalable, reliable systems</p>
+          </div>
+
+          <div className="flex flex-col lg:flex-row">
+            <div className="hidden lg:block w-80 border-r border-gray-200 dark:border-gray-800 min-h-[calc(100vh-200px)] sticky top-[73px] self-start">
+              <div className="p-4 space-y-1">
+                {systemDesignPosts.map((post, idx) => (
+                  <button
+                    key={post.id}
+                    onClick={() => setSelectedPost({
+                      ...post,
+                      date: post.created_at,
+                      readTime: post.read_time,
+                      code_snippet: post.code_snippet,
+                      category: 'System Design'
+                    })}
+                    className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                      selectedPost?.id === post.id
+                        ? 'bg-blue-500 text-white font-medium'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <span className="text-gray-400 dark:text-gray-500 mr-2">{idx + 1}.</span>
+                    {post.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-1 p-4 md:p-8 lg:p-12">
+              {selectedPost ? (
+                <article className="max-w-3xl mx-auto">
+                  <button
+                    onClick={() => setSelectedPost(null)}
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm mb-6 flex items-center transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    All topics
+                  </button>
+
+                  <span className="inline-block bg-blue-500 text-white text-[10px] font-black uppercase px-2 py-1 tracking-tight mb-4">
+                    System Design
+                  </span>
+
+                  <h1 className="text-2xl md:text-4xl font-extrabold mb-4 leading-tight text-gray-900 dark:text-white">
+                    {selectedPost.title}
+                  </h1>
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-8 text-sm text-gray-500 dark:text-gray-400">
+                    <span className="font-semibold text-gray-900 dark:text-white">{selectedPost.author}</span>
+                    <span>•</span>
+                    <span>{selectedPost.read_time || selectedPost.readTime}</span>
+                  </div>
+
+                  <div className="prose dark:prose-invert max-w-none text-base md:text-lg"
+                    dangerouslySetInnerHTML={{ __html: selectedPost.content }} />
+
+                  {selectedPost.code_snippet && (
+                    <div className="my-8 bg-[#1e1e1e] rounded-xl overflow-hidden">
+                      <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#3d3d3d]">
+                        <span className="text-xs font-bold text-gray-400 tracking-widest uppercase">Example</span>
+                      </div>
+                      <CodeBlock code={selectedPost.code_snippet} />
+                    </div>
+                  )}
+
+                  <div className="mt-12 pt-6 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row gap-4 justify-between">
+                    {systemDesignPosts.findIndex(p => p.id === selectedPost.id) > 0 && (
+                      <button
+                        onClick={() => {
+                          const idx = systemDesignPosts.findIndex(p => p.id === selectedPost.id);
+                          const prevPost = systemDesignPosts[idx - 1];
+                          setSelectedPost({
+                            ...prevPost,
+                            date: prevPost.created_at,
+                            readTime: prevPost.read_time,
+                            code_snippet: prevPost.code_snippet,
+                            category: 'System Design'
+                          });
+                          window.scrollTo(0, 0);
+                        }}
+                        className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        {systemDesignPosts[systemDesignPosts.findIndex(p => p.id === selectedPost.id) - 1].title}
+                      </button>
+                    )}
+                    {systemDesignPosts.findIndex(p => p.id === selectedPost.id) < systemDesignPosts.length - 1 && (
+                      <button
+                        onClick={() => {
+                          const idx = systemDesignPosts.findIndex(p => p.id === selectedPost.id);
+                          const nextPost = systemDesignPosts[idx + 1];
+                          setSelectedPost({
+                            ...nextPost,
+                            date: nextPost.created_at,
+                            readTime: nextPost.read_time,
+                            code_snippet: nextPost.code_snippet,
+                            category: 'System Design'
+                          });
+                          window.scrollTo(0, 0);
+                        }}
+                        className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-2 ml-auto"
+                      >
+                        {systemDesignPosts[systemDesignPosts.findIndex(p => p.id === selectedPost.id) + 1].title}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </article>
+              ) : (
+                <>
+                  <div className="lg:hidden mb-6">
+                    <button
+                      onClick={() => setMobilePatternList(!mobilePatternList)}
+                      className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-lg"
+                    >
+                      <span className="text-sm font-medium">View Topics</span>
+                      <svg className={`w-5 h-5 transition-transform ${mobilePatternList ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    
+                    {mobilePatternList && (
+                      <div className="mt-2 space-y-1">
+                        {systemDesignPosts.map((post, idx) => (
+                          <button
+                            key={post.id}
+                            onClick={() => {
+                              setSelectedPost({
+                                ...post,
+                                date: post.created_at,
+                                readTime: post.read_time,
+                                code_snippet: post.code_snippet,
+                                category: 'System Design'
+                              });
+                              setMobilePatternList(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                          >
+                            {idx + 1}. {post.title}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                    {systemDesignPosts.map((post, idx) => (
+                      <button
+                        key={post.id}
+                        onClick={() => setSelectedPost({
+                          ...post,
+                          date: post.created_at,
+                          readTime: post.read_time,
+                          code_snippet: post.code_snippet,
+                          category: 'System Design'
+                        })}
+                        className="text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all"
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="text-xs font-mono text-gray-400">{idx + 1}.</span>
+                          <span className="bg-blue-500 text-white text-[10px] font-black uppercase px-2 py-0.5 tracking-tight">
+                            System Design
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
+                          {post.title}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm mb-3 line-clamp-2">
+                          {post.summary}
+                        </p>
+                        <span className="text-xs text-gray-400">{post.read_time}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center">
@@ -487,6 +733,10 @@ const App: React.FC = () => {
 
   if (showDesignPatternsPage) {
     return <DesignPatternsPage />;
+  }
+
+  if (showSystemDesignPage) {
+    return <SystemDesignPage />;
   }
 
   return (
@@ -509,6 +759,8 @@ const App: React.FC = () => {
                 onClick={() => {
                   if (cat === 'Design Patterns') {
                     setShowDesignPatternsPage(true);
+                  } else if (cat === 'System Design') {
+                    setShowSystemDesignPage(true);
                   } else {
                     setActiveCategory(cat);
                     setSelectedPost(null);
@@ -516,7 +768,7 @@ const App: React.FC = () => {
                   }
                 }}
                 className={`text-sm font-semibold transition-colors ${
-                  cat === 'Design Patterns' ? 'text-yellow-400' : ''
+                  cat === 'Design Patterns' ? 'text-yellow-400' : cat === 'System Design' ? 'text-blue-400' : ''
                 } ${
                   !showAbout && activeCategory === cat ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
@@ -580,6 +832,8 @@ const App: React.FC = () => {
                   onClick={() => {
                     if (cat === 'Design Patterns') {
                       setShowDesignPatternsPage(true);
+                    } else if (cat === 'System Design') {
+                      setShowSystemDesignPage(true);
                     } else {
                       setActiveCategory(cat);
                       setSelectedPost(null);
@@ -588,7 +842,7 @@ const App: React.FC = () => {
                     setMobileMenuOpen(false);
                   }}
                   className={`block w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    cat === 'Design Patterns' ? 'text-yellow-400 bg-gray-50 dark:bg-gray-900' : ''
+                    cat === 'Design Patterns' ? 'text-yellow-400 bg-gray-50 dark:bg-gray-900' : cat === 'System Design' ? 'text-blue-400 bg-gray-50 dark:bg-gray-900' : ''
                   } ${
                     !showAbout && activeCategory === cat
                       ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800'
@@ -691,10 +945,11 @@ const App: React.FC = () => {
                 <article
                   key={`${post.id}-${index}`}
                   onClick={() => {
+                    setSelectedPost(post);
                     if (getCategoryName(post) === 'Design Patterns') {
                       setShowDesignPatternsPage(true);
-                    } else {
-                      setSelectedPost(post);
+                    } else if (getCategoryName(post) === 'System Design') {
+                      setShowSystemDesignPage(true);
                     }
                   }}
                   className="group cursor-pointer flex flex-col h-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-700 transition-all"
