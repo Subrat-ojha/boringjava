@@ -7,7 +7,7 @@ import { systemDesignPosts } from './data/systemDesign';
 // Flag to use local data (set to false when Supabase is ready)
 const USE_SUPABASE = true;
 
-type Category = 'Java SE' | 'Design Patterns' | 'System Design' | 'Spring Boot';
+type Category = 'Java SE' | 'Java Fundamentals' | 'Java Interview Questions' | 'Design Patterns' | 'System Design' | 'Spring Boot';
 
 interface Post {
   id: number | string;
@@ -102,6 +102,7 @@ const App: React.FC = () => {
           // Use database posts
           setAllPosts(dbPosts.map((p: any) => ({
             ...p,
+            category: p.categories?.name as Category || 'Java SE',
             date: p.created_at,
             readTime: p.read_time,
             code_snippet: p.code_snippet
