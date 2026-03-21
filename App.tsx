@@ -63,7 +63,7 @@ const App: React.FC = () => {
   const [showDesignPatternsPage, setShowDesignPatternsPage] = useState(false);
   const [showSystemDesignPage, setShowSystemDesignPage] = useState(false);
 
-  const categories: (string | Category)[] = ['All', 'Java SE', 'Design Patterns', 'System Design', 'Spring Boot'];
+  const categories: (string | Category)[] = ['All', 'Java SE', 'Java Fundamentals', 'Java Interview Questions', 'Design Patterns', 'System Design', 'Spring Boot'];
 
   useEffect(() => {
     const loadPosts = async () => {
